@@ -19,6 +19,7 @@ local fire2 = fireSounds.Fire2
 local goreSounds = script.GoreSounds
 local bulletHoles = {"123626001036905", "6552016346", "17875410792"}
 local whizzSounds = {"342190005", "342190012", "342190017", "342190024"}
+local random = Random.new()
 
 -- //SETTINGS
 local UP_SPEED = 2
@@ -65,7 +66,7 @@ local function explosion(char: Model)
         if not v:IsA("BasePart") then
             continue
         end
-        v:ApplyImpulse(Vector3.new(math.random(-75, 75), math.random(20, 100), math.random(-75, 75)))
+        v:ApplyImpulse(Vector3.new(random:NextInteger(-75, 75), random:NextInteger(20, 100), random:NextInteger(-75, 75)))
     end
 end
 
@@ -111,6 +112,8 @@ local function airstrike(plr: Player, pos: Vector3, jetLook: Vector3)
 	local a10Fly = vel:WaitForChild("A10")
 	local engine = vel:WaitForChild("Engine")
     local G8A = newJet:WaitForChild("G8A")
+    local muzzle = G8A:WaitForChild("Muzzle")
+    local lightFlash = muzzle:WaitForChild("LightFlash")
     local deadChars: { Model } = {}
     
     -- Positioning
@@ -165,7 +168,6 @@ local function airstrike(plr: Player, pos: Vector3, jetLook: Vector3)
     overlapParams.FilterDescendantsInstances = { newJet }
     
     local function createBulletHole(result: RaycastResult)
-        local random = Random.new()
         local img = bulletHoles[random:NextInteger(1, #bulletHoles)]
         local whizz = whizzSounds[random:NextInteger(1, #whizzSounds)]
         
@@ -215,14 +217,13 @@ local function airstrike(plr: Player, pos: Vector3, jetLook: Vector3)
         local trailClone = trail:Clone()
         trailClone.Position = pos
         trailClone.Parent = workspace
-        task.delay(0.1, trailClone.Destroy , trailClone)
 
         local a0, a1 = trailClone:WaitForChild("Attachment"), trailClone:WaitForChild("Attachment2")
         a0.WorldPosition = G8A.Position
         playVFX(G8A)
+        task.delay(0.1, trailClone.Destroy , trailClone)
 
         -- Shoot
-        local random = Random.new()
         local randomPos = pos + Vector3.new( random:NextInteger(0, 25), random:NextInteger(0, 25), random:NextInteger(0, 25))
         local origin = vel.Position
         local dir = (randomPos - origin).Unit * 1500
@@ -239,12 +240,12 @@ local function airstrike(plr: Player, pos: Vector3, jetLook: Vector3)
     
     local function startShooting()
         ure_Effects:FireAllClients("A10_Start", pos, EFFECTS_DISTANCE)
-		G8A.Muzzle.LightFlash.Enabled = true
+		lightFlash.Enabled = true
         while shooting do
             task.defer(shoot)
 			task.wait(cooldown)
 		end
-        G8A.Muzzle:Destroy()
+        muzzle:Destroy()
 	end
     task.defer(startShooting)
     
@@ -256,6 +257,10 @@ local function airstrike(plr: Player, pos: Vector3, jetLook: Vector3)
         local alpha = 0
         local conn: RBXScriptConnection
         conn = RunService.PostSimulation:Connect(function(dt)
+            if not vel.Parent then
+                conn:Disconnect()
+            end
+            
             alpha += dt * UP_SPEED
             alpha = math.clamp(alpha, 0, 1)
 
